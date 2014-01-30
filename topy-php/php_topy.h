@@ -20,7 +20,7 @@
 #ifndef PHP_TOPY_H
 #define PHP_TOPY_H
 
-#define PHP_TOPY_VERSION "0.10"
+#define PHP_TOPY_VERSION "0.12"
 #define PHP_TOPY_EXTNAME "topy"
 
 #define PHP_TOPY_CONNECTION_RES_NAME "topy_connection"
@@ -29,6 +29,15 @@ int le_topy_connection_persist;
 
 #define TOPY_TIMEOUT 30
 #define TOPY_BUFFER_SIZE 1024
+
+#include <time.h>
+typedef struct {
+	time_t last_query_ts;
+	unsigned int queries_count;
+
+	time_t last_connection_ts;
+	unsigned int connections_count;
+} Stats;
 
 typedef struct {
 	int persist;
@@ -41,6 +50,7 @@ typedef struct {
 	long int timeout;
 	char *error_msg;
 	int error_code;
+	Stats stats;	
 } topy_connection_t;
 
 PHP_MINIT_FUNCTION(topy);

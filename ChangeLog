@@ -1,4 +1,26 @@
--- Version 0.42 -- 2011/03/29
+-- Version 0.47 -- 2012/05/14
+
+ * Implement --enable-signed-events compilation option for EVENTS fields
+ * Add new score rule days::last3 for EVENTS fields
+
+-- Version 0.46 -- 2011/05/30
+
+ * Add buffer for input data
+ * Minor bugfixes
+
+-- Version 0.45 -- 2011/05/25
+
+ * Fix memory leak
+ * Improve implementation of "unthreaded" suffix
+ * Add stats entry "unexisting_user"
+
+-- Version 0.44 -- 2011/05/23
+
+ * Add prefix "unthreaded"
+ * Add commands "timer *"
+ * Add mutex for Timer::lock_count
+
+-- Version 0.43 -- 2011/03/29
 
  * Improve "top" command (add "set" attribut)
  * Add filter "suffix$"

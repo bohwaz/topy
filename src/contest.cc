@@ -136,7 +136,7 @@ bool Contest::parse_query(ClientResult &result, std::string const cmd_prefix, Wo
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -159,7 +159,7 @@ bool Contest::parse_query(ClientResult &result, std::string const cmd_prefix, Wo
 		ContestFindThread *thread = new ContestFindThread(result.get_client());
 		thread->contest = this;
 		thread->user = user;
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -171,7 +171,7 @@ bool Contest::parse_query(ClientResult &result, std::string const cmd_prefix, Wo
 		PARSING_END(parser, result);
 		ContestClearThread *thread = new ContestClearThread(result.get_client());
 		thread->contest = this;
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -183,7 +183,7 @@ bool Contest::parse_query(ClientResult &result, std::string const cmd_prefix, Wo
 		PARSING_END(parser, result);
 		ContestSizeThread *thread = new ContestSizeThread(result.get_client());
 		thread->contest = this;
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 

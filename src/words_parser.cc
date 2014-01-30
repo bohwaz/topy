@@ -41,8 +41,8 @@ std::string WordsParser::get_next(bool const allchars) {
 		return "";
 
 	//goto begining of word
-	uint8_t classe;
-	while ((classe = char_classe[(int) c]) == CHAR_CLASSE_SPACE) {
+	uint8_t c_class;
+	while ((c_class = char_class[(int) c]) == CHAR_CLASS_SPACE) {
 		c = buffer->get();
 		if (buffer->eof()) 	
 			return "";
@@ -51,7 +51,7 @@ std::string WordsParser::get_next(bool const allchars) {
 	//get chars
 	if (allchars) {
 		std::stringstream result;
-		while (char_classe[(int) c] != CHAR_CLASSE_SPACE) {
+		while (char_class[(int) c] != CHAR_CLASS_SPACE) {
 			result << c;
 			c = buffer->get();
 			if (buffer->eof()) 
@@ -61,12 +61,12 @@ std::string WordsParser::get_next(bool const allchars) {
 		return result.str();
 	}
 
-	if (classe == CHAR_CLASSE_SEPARATOR) {
+	if (c_class == CHAR_CLASS_SEPARATOR) {
 		return std::string(1, c);
 	}
 
 	std::stringstream result;
-	while (char_classe[(int) c] == classe) {
+	while (char_class[(int) c] == c_class) {
 		result << c;
 		c = buffer->get();
 		if (buffer->eof()) 
@@ -76,8 +76,12 @@ std::string WordsParser::get_next(bool const allchars) {
 	return result.str();
 }
 
-std::string WordsParser::next(bool const allchars) {
-	return current = get_next(allchars);
+std::string WordsParser::next() {
+	return current = get_next(false);
+}
+
+std::string WordsParser::until_space() {
+	return current = get_next(true);
 }
 
 std::string WordsParser::until(char const last) {
@@ -102,10 +106,10 @@ std::string WordsParser::until_end() {
 	return current;
 }
 
-void WordsParser::set_char_classe(std::string const chars, uint8_t const value) {
+void WordsParser::set_char_class(std::string const chars, uint8_t const value) {
 	int size = chars.size();
 	for (int i = 0; i < size; i++)
-		char_classe[(int) chars[i]] = value;
+		char_class[(int) chars[i]] = value;
 }
 
 WordsParser::WordsParser(std::istream *in) {
@@ -113,10 +117,10 @@ WordsParser::WordsParser(std::istream *in) {
 	current = "<undefined>";
 
 	for (int i = 0; i < 255; i++) 
-		char_classe[i] = CHAR_CLASSE_UNDEF;
+		char_class[i] = CHAR_CLASS_UNDEF;
 
-	set_char_classe(" \n\r\t", CHAR_CLASSE_SPACE);
-	set_char_classe(",()[]{};!*#\"/", CHAR_CLASSE_SEPARATOR);
-	set_char_classe("=<>|", CHAR_CLASSE_1);
-	set_char_classe("&", CHAR_CLASSE_2);
+	set_char_class(" \n\r\t", CHAR_CLASS_SPACE);
+	set_char_class(",()[]{};!*#\"/", CHAR_CLASS_SEPARATOR);
+	set_char_class("=<>|", CHAR_CLASS_1);
+	set_char_class("&", CHAR_CLASS_2);
 }

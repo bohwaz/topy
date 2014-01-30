@@ -24,14 +24,14 @@
 #include <sstream>
 #include <string>
 
-#define CHAR_CLASSE_UNDEF 255
-#define CHAR_CLASSE_SPACE 0
-#define CHAR_CLASSE_SEPARATOR 1
+#define CHAR_CLASS_UNDEF 255
+#define CHAR_CLASS_SPACE 0
+#define CHAR_CLASS_SEPARATOR 1
 
-#define CHAR_CLASSE_1 2
-#define CHAR_CLASSE_2 3
-#define CHAR_CLASSE_3 4
-#define CHAR_CLASSE_4 5
+#define CHAR_CLASS_1 2
+#define CHAR_CLASS_2 3
+#define CHAR_CLASS_3 4
+#define CHAR_CLASS_4 5
 
 
 class WordsParser {
@@ -39,18 +39,19 @@ private:
 	std::string get_next(bool const allchars);
 
 public:
-	uint8_t char_classe[255];
+	uint8_t char_class[255];
 
 	std::istream *buffer;
 	std::string current;
 
-	std::string next(bool const allchars = false);
 	char next_char();
+	std::string next();
+	std::string until_space();
 	std::string until(char const last);
 	std::string until_end();
 
 	bool waiting_for(std::string const str);
-	void set_char_classe(std::string const chars, uint8_t const value);
+	void set_char_class(std::string const chars, uint8_t const value);
 	WordsParser(std::istream *in);
 };
 

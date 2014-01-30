@@ -1,7 +1,7 @@
 AC_INIT
 
 AC_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(topy,0.43)
+AM_INIT_AUTOMAKE(topy,0.47)
 
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -17,6 +17,10 @@ AC_ARG_ENABLE(strid, [  --enable-strid          enabled string ids], [
 
 AC_ARG_ENABLE(int64id, [  --enable-int64id        enabled 64 bits ids], [
 	AC_DEFINE(HAVE_INT64ID, 1, [Enabled 64 bits ids])
+])
+
+AC_ARG_ENABLE(signed-events, [  --enable-signed-events  enabled signed events], [
+	AC_DEFINE(HAVE_SIGNED_EVENTS, 1, [Enabled signed events])
 ])
 
 AC_OUTPUT(Makefile src/Makefile doc/Makefile)

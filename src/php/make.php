@@ -65,6 +65,7 @@ mk_define("HELP_FIELD_LOG", extract_help(dirname(__FILE__)."/../field.cc", "//lo
 mk_define("HELP_FIELD_EVENTS", extract_help(dirname(__FILE__)."/../field.cc", "//events!(.*)", false));
 mk_define("HELP_AUTODUMP", extract_help(dirname(__FILE__)."/../autodump.cc"));
 mk_define("HELP_FIELDS", extract_help(dirname(__FILE__)."/../fields.cc"));
+mk_define("HELP_TIMER", extract_help(dirname(__FILE__)."/../timer.cc"));
 
 ?>
 

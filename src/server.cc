@@ -93,15 +93,24 @@ bool parse_query(bool &parsed, ClientResult &result, WordsParser *parser, Output
 	std::stringstream replication_query;
 	replication_query << "#";
 
-	//Do not replicate query
+	//!#<command>
+	//!	Do not replicate query
 	if (parser->current == "#") {
 		result.replicated = true;
 		parser->next();
 	}
 
-	//Do not send result data
+	//!!<command>
+	//!	Do not send result data
 	if (parser->current == "!") {
 		result.quiet = true;
+		parser->next();
+	}
+
+	//!unthreaded <command>
+	//!	Execute the command in the main thread
+	if (parser->current == "unthreaded") {
+		result.unthreaded = true;
 		parser->next();
 	}
 
@@ -128,7 +137,10 @@ bool parse_query(bool &parsed, ClientResult &result, WordsParser *parser, Output
 
 		if (!user) {
 			USER_ID_FREE(id);
-			RETURN_PARSE_ERROR(result, "Not a valid user id.");
+			stats.inc("unexisting_user");
+			result.error("Not a valid user id.");
+			result.send();
+			return false;
 		}
 
 		replication_query << "user *" << id;
@@ -209,6 +221,15 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		return res;
 	}
 
+	//!timer <command>
+	//!	Execute a command on timer
+	//!	See "timer help" for more information
+	else if (parser->current == "timer") {
+		parser->next();
+		bool res = timer.parse_query(result, "timer::", parser, mode);
+		return res;
+	}
+
 	//!info 
 	//!	Get server information
 	else if (parser->current == "info") {
@@ -218,6 +239,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		result.data << "Topy version: " VERSION << std::endl;
 		result.data << "Libevent version: " << event_get_version() << std::endl;
 		result.data << "Users id type: " << USER_ID_TYPE_NAME << std::endl;
+		result.data << "Events fields: " << FIELD_EVENTS_SIGNED_INFO << std::endl;
 		result.send();
 		return true;
 	}
@@ -252,7 +274,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 	//!	Dump data in file <path>
 	else if (parser->current == "dump") {
 		stats.inc("dump");
-		std::string path = parser->next(true);
+		std::string path = parser->until_space();
 		if (path == "") {
 			RETURN_PARSE_ERROR(result, "Path is needed.");
 		}
@@ -260,7 +282,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 
 		DumpThread *thread = new DumpThread(this);
 		thread->target = path;
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 
 	}
@@ -342,7 +364,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -370,11 +392,11 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
-	//!top <field> [rule <rule name>] [inversed] [set <user1>, <user2>, ...] [from <set>] [where <expr>] [size <n = 32>] [join (<field>, *|<rule>) (<field>, *|<rule>)...]
+	//!top <field> [rule <rule name>] [inversed] [set <user1>, <user2>, ...] [from <set>] [where <expr>] [size <n = 32>] [nolock] [join (<field>, *|<rule>) (<field>, *|<rule>)...]
 	//!	Show most active users of given groups
 	else if (parser->current == "top") {
 		stats.inc("top");
@@ -391,6 +413,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		thread->rule = 0;
 		thread->type = mode;
 		thread->inversed = false;
+		thread->nolock = false;
 
 		User user;
 		if (parser->current == "rule") {
@@ -413,6 +436,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		}
 
 		if (parser->current == "set") {
+			result.unthreaded = true;
 			do {
 				parser->next();
 				UserId id;
@@ -434,13 +458,18 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 			parser->next();
 		}
 
+		if (parser->current == "nolock") {
+			thread->nolock = true;
+			parser->next();
+		}
+
 		if (!parse_join(parser, thread->join, result)) {
 			delete thread;
 			return false;
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -461,7 +490,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -499,7 +528,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -537,7 +566,7 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -580,15 +609,25 @@ bool ClientTopy::parse_query(WordsParser *parser) {
 	RETURN_NOT_VALID_CMD(result);
 }
 
+#define STR(s) #s
+#define XSTR(s) STR(s)
+
 void ClientTopy::receive() {
 	try {
-		std::stringstream stream;
-		read(stream);
-
-		WordsParser parser(&stream);
-		parser.next();
-		ClientResult result(this);
-		parse_query(&parser);
+		std::string query;
+		bool overflow;
+		if (read(query, overflow)) {
+			if (overflow) {
+				ClientResult result(this);
+				PARSE_ERROR(result, "Query overflow (max size is: " XSTR(INPUTBUF_LIMIT) ")");
+			}
+			else {
+				std::stringstream stream(query);
+				WordsParser parser(&stream);
+				parser.next();
+				parse_query(&parser);
+			}
+		}
 	}
 	catch (...) {
 		log.msg(LOG_ERR, "Not a valid command buffer");

@@ -29,6 +29,12 @@
 	"=================\n" \
 	"TID <n> <command>\n" \
 	"	Give a Transaction Id that will be returned with the command's result\n" \
+	"#<command>\n" \
+	"	Do not replicate query\n" \
+	"!<command>\n" \
+	"	Do not send result data\n" \
+	"unthreaded <command>\n" \
+	"	Execute the command in the main thread\n" \
 	"user <user_id> <command> [args]\n" \
 	"	Execute a command on a existing user\n" \
 	"	See \"user <user_id> help\" for more information\n" \
@@ -50,6 +56,9 @@
 	"autodump <command>\n" \
 	"	Execute a command on autodump\n" \
 	"	See \"autodump help\" for more information\n" \
+	"timer <command>\n" \
+	"	Execute a command on timer\n" \
+	"	See \"timer help\" for more information\n" \
 	"info\n" \
 	"	Get server information\n" \
 	"stats\n" \
@@ -67,7 +76,7 @@
 	"	Return a report about a given field\n" \
 	"clear <field> [from <set>] [where <expr>]\n" \
 	"	Clear a given field to a group of users\n" \
-	"top <field> [rule <rule name>] [inversed] [set <user1>, <user2>, ...] [from <set>] [where <expr>] [size <n = 32>] [join (<field>, *|<rule>) (<field>, *|<rule>)...]\n" \
+	"top <field> [rule <rule name>] [inversed] [set <user1>, <user2>, ...] [from <set>] [where <expr>] [size <n = 32>] [nolock] [join (<field>, *|<rule>) (<field>, *|<rule>)...]\n" \
 	"	Show most active users of given groups\n" \
 	"count [from <set>] [where <expr bool>]\n" \
 	"	Count users\n" \
@@ -207,6 +216,20 @@
 	"	Add field\n" \
 	"list\n" \
 	"	List fields\n" \
+	"help\n" \
+	"	Show commands list\n" 
+
+#define HELP_TIMER \
+	"list of commands:\n" \
+	"=================\n" \
+	"get\n" \
+	"	Get timer's data\n" \
+	"lock\n" \
+	"	Lock timer\n" \
+	"unlock\n" \
+	"	Unlock timer\n" \
+	"debug\n" \
+	"	Show debug information\n" \
 	"help\n" \
 	"	Show commands list\n" 
 

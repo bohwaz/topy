@@ -122,6 +122,24 @@ int socket_open(char const *host, char const *port, long int const timeout_sec) 
 }
 
 //-------- connection ---------//
+void connection_stats_clear(topy_connection_t *connection) {
+	connection->stats.last_query_ts = 0;
+	connection->stats.queries_count = 0;
+
+	connection->stats.last_connection_ts = 0;
+	connection->stats.connections_count = 0;
+}
+
+void connection_stats_connections_inc(topy_connection_t *connection) {
+	connection->stats.last_connection_ts = time(NULL);
+	connection->stats.connections_count++;
+}
+
+void connection_stats_queries_inc(topy_connection_t *connection) {
+	connection->stats.last_query_ts = time(NULL);
+	connection->stats.queries_count++;
+}
+
 topy_connection_t *connection_new(int persist, int key_len, char *key, int socket, char *host, char *port, long int timeout) {
 //	php_printf("NEW %i\n", persist);
 
@@ -137,6 +155,10 @@ topy_connection_t *connection_new(int persist, int key_len, char *key, int socke
 	connection->timeout = timeout;
 	connection->error_code = 0;
 	connection->error_msg = NULL;
+
+	//stats
+	connection_stats_clear(connection);
+	connection_stats_connections_inc(connection);
 
 	return connection;
 }
@@ -182,6 +204,11 @@ int connection_reconnect(topy_connection_t *connection) {
 
 	connection_close(connection);
 	connection->socket = socket_open(connection->host, connection->port, connection->timeout);
+
+	if (connection->socket != -1) {
+		connection_stats_connections_inc(connection);
+	}
+
 	return connection->socket;
 }
 
@@ -198,17 +225,20 @@ void connection_clear(topy_connection_t *connection) {
 }
 
 int connection_query_send(topy_connection_t *connection, int send_tid, char *data, size_t size) {
-	int res;
+	//Construct query
+	char *query;
+	int query_size;
 	if (send_tid != 0) {
 		connection->tid = (connection->tid + 1) % 65535;
-		char *query;
-		int query_size = spprintf(&query, 0, "TID %i %s", connection->tid, data);
-		res = write(connection->socket, query, query_size);
-		efree(query);
+		query_size = spprintf(&query, 0, "TID %i %s\n", connection->tid, data);
 	}
 	else {
-		res = write(connection->socket, data, size);
+		query_size = spprintf(&query, 0, "%s\n", data);
 	}
+
+	//Send query
+	int res = write(connection->socket, query, query_size);
+	efree(query);
 
 	if (res == -1)
 		return -1;
@@ -275,6 +305,9 @@ void connection_query_read_result(topy_connection_t *connection, zval *return_va
 		}
 	}
 	buffer[size - 2] = '\0';
+
+	//stats
+	connection_stats_queries_inc(connection);
 	
 	//parse header
 	char *line, *next;
@@ -467,6 +500,15 @@ PHP_FUNCTION(topy_info) {
 	add_assoc_long(return_value, "tid", connection->tid);
 	add_assoc_long(return_value, "error_code", connection->error_code);
 	ADD_ASSOC_STRING_OR_NULL(return_value, "error_msg", connection->error_msg);
+
+	zval *stats;
+	ALLOC_INIT_ZVAL(stats);
+	array_init(stats);
+	add_assoc_long(stats, "last_query_ts", connection->stats.last_query_ts);
+	add_assoc_long(stats, "queries_count", connection->stats.queries_count);
+	add_assoc_long(stats, "last_connection_ts", connection->stats.last_connection_ts);
+	add_assoc_long(stats, "connections_count", connection->stats.connections_count);
+	add_assoc_zval(return_value, "stats", stats);
 }
 
 PHP_FUNCTION(topy_error) {
@@ -572,27 +614,33 @@ PHP_FUNCTION(topy_query_read) {
 #define SOCKETS_MAX_NB 256
 PHP_FUNCTION(topy_query_wait) {
 	zval *arr;
-	int timeout = TOPY_TIMEOUT;
+	int timeout = TOPY_TIMEOUT * 1000;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a|l", &arr, &timeout) == FAILURE) {
 		RETURN_FALSE;
 	}
 
 	HashTable *arr_hash = Z_ARRVAL_P(arr);
-	HashPosition position;
+	HashPosition iterator;
 	zval **value;
-	struct pollfd fds[SOCKETS_MAX_NB];
-	long resources[SOCKETS_MAX_NB];
 
 	int fds_size = 0;
-	for (zend_hash_internal_pointer_reset_ex(arr_hash, &position); zend_hash_get_current_data_ex(arr_hash, (void**) &value, &position) == SUCCESS && fds_size <= SOCKETS_MAX_NB; zend_hash_move_forward_ex(arr_hash, &position)) {
+	HashPosition keys[SOCKETS_MAX_NB];
+	struct pollfd fds[SOCKETS_MAX_NB];
+
+	for (zend_hash_internal_pointer_reset_ex(arr_hash, &iterator); zend_hash_get_current_data_ex(arr_hash, (void**) &value, &iterator) == SUCCESS && fds_size <= SOCKETS_MAX_NB; zend_hash_move_forward_ex(arr_hash, &iterator)) {
 		topy_connection_t *connection;
 		ZEND_FETCH_RESOURCE2(connection, topy_connection_t*, value, -1, PHP_TOPY_CONNECTION_RES_NAME, le_topy_connection, le_topy_connection_persist);
 
-		resources[fds_size] = Z_LVAL_PP(value);
+		keys[fds_size] = iterator;
 		fds[fds_size].fd = connection->socket;
 		fds[fds_size].events = POLLIN;
+		fds[fds_size].revents = 0;
 		fds_size++;
+	}
+
+	if (fds_size == 0) {
+		RETURN_FALSE;
 	}
 
 	int res = poll(fds, fds_size, timeout);
@@ -603,7 +651,16 @@ PHP_FUNCTION(topy_query_wait) {
 	int i;
 	for (i = 0; i < fds_size; i++) {
 		if (fds[i].revents & POLLIN) {
-			RETURN_RESOURCE(resources[i]);
+			char *key;
+			int key_len;
+			long l;
+			if (zend_hash_get_current_key_ex(arr_hash, &key, &key_len, &l, 0, &keys[i]) == HASH_KEY_IS_STRING) {
+				RETURN_STRINGL(key, key_len, 1);
+			}
+			else {
+				RETURN_LONG(l);
+			}
 		}
 	}
+	RETURN_FALSE;
 }

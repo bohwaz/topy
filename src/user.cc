@@ -306,7 +306,7 @@ bool User::parse_query(ClientResult &result, std::string const cmd_prefix, Words
 			PARSING_END(parser, result);
 
 			if (!set_group(name)) {
-				RETURN_PARSE_ERROR(result, "Not a valid field name.");
+				RETURN_PARSE_ERROR(result, "Not a valid group name.");
 			}
 
 			//replication

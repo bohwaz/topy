@@ -24,6 +24,9 @@
 #include <string>
 #include <sys/types.h>
 #include <event.h>
+#include <sstream>
+
+#define INPUTBUF_LIMIT 16192
 
 class Client {
 	friend void client_read(bufferevent *ev_buffer, void *data);
@@ -35,9 +38,12 @@ private:
 	bufferevent *ev_buffer;
 	int ref_count;
 	int fd;
+	std::stringbuf inputbuf;
+	bool overflow;
 
 	virtual void receive();
 	void error(short what);
+	bool read_inputbuf();
 
 protected:
 	void clear();
@@ -48,7 +54,7 @@ public:
 	bool write(void *buffer, size_t size);
 	bool write(std::stringstream &stream);
 	size_t read(void *buffer, size_t size);
-	void read(std::stringstream &stream);
+	bool read(std::string &str, bool &overflow);
 
 	void ref();
 	void unref();

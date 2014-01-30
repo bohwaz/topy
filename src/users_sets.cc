@@ -120,7 +120,7 @@ bool UsersSets::parse_query(ClientResult &result, std::string const cmd_prefix, 
 		}
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 
@@ -139,7 +139,7 @@ bool UsersSets::parse_query(ClientResult &result, std::string const cmd_prefix, 
 
 		SetsClearThread *thread = new SetsClearThread(result.get_client());
 		thread->vector = vector;
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 

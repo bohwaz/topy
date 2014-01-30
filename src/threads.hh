@@ -44,6 +44,7 @@ public:
 	OutputType type;
 	bool inversed;
 	TopJoinItems join;
+	bool nolock;
 
 	void main();
 	TopThread(Client *client);

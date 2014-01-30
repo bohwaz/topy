@@ -172,7 +172,7 @@ bool Contests::parse_query(ClientResult &result, std::string const cmd_prefix, W
 		thread->contest = find_or_create(name);
 
 		PARSING_ENDED_T(parser, result, thread);
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 

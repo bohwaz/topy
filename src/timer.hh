@@ -24,10 +24,15 @@
 #include <ctime>
 #include <sstream>
 
+#include "words_parser.hh"
+#include "result.hh"
+#include "help.hh"
+
 struct Timer {
 private:
 	time_t update;
 	int lock_count;
+	PMutex mutex;
 
 public:
 	time_t now;
@@ -42,6 +47,7 @@ public:
 	void debug(std::stringstream &out);
 	void lock();
 	void unlock();
+	bool parse_query(ClientResult &result, std::string const cmd_prefix, WordsParser *parser, OutputType const mode);
 
 	Timer();	
 };

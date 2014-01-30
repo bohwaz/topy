@@ -53,4 +53,9 @@ typedef uint32_t UserId;
 #endif
 #endif
 
+#ifdef HAVE_SIGNED_EVENTS
+#define EVENTS_SIGNED
+#endif
+
+
 #endif

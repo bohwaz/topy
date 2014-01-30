@@ -99,12 +99,78 @@ void Timer::serialize_php(std::stringstream &out) {
 
 void Timer::lock() {
 	refresh();
+
+	mutex.lock();
 	lock_count++;
+	mutex.unlock();
 }
 
 void Timer::unlock() {
+	mutex.lock();
 	if (lock_count > 0)
 		lock_count--;
+	mutex.unlock();
+}
+
+bool Timer::parse_query(ClientResult &result, std::string const cmd_prefix, WordsParser *parser, OutputType const mode) {
+	//!get
+	//!	Get timer's data
+	if (parser->current == "get") {
+		stats.inc(cmd_prefix + "get");
+
+		PARSING_END(parser, result);
+		serialize_php(result.data);
+		result.type = PHP_SERIALIZE;
+		result.send();
+		return true;
+	}
+
+	//!lock 
+	//!	Lock timer
+	else if (parser->current == "lock") {
+		stats.inc("misc");
+
+		PARSING_END(parser, result);
+		lock();
+		result.send();
+		return true;
+	}
+
+	//!unlock 
+	//!	Unlock timer
+	else if (parser->current == "unlock") {
+		stats.inc("misc");
+
+		PARSING_END(parser, result);
+		unlock();
+		result.send();
+		return true;
+	}
+
+	//!debug 
+	//!	Show debug information
+	else if (parser->current == "debug") {
+		stats.inc("misc");
+
+		PARSING_END(parser, result);
+		debug(result.data);
+		result.send();
+		return true;
+	}
+
+	//!help
+	//!	Show commands list
+	if (parser->current == "help") {
+		stats.inc("misc");
+
+		PARSING_END(parser, result);
+		result.data << HELP_TIMER;
+		result.send();
+		return true;
+	}
+
+	//not a valid command
+	RETURN_NOT_VALID_CMD(result);
 }
 
 Timer::Timer() {

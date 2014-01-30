@@ -1,3 +1,12 @@
+-- Version 0.12 -- 2011/06/03
+
+ * Improve topy_query_wait()
+
+-- Version 0.11 -- 2011/05/30
+
+ * Add stats in topy_info()
+ * Add \n at the end of queries
+
 -- Version 0.10 -- 2011/03/28
 
  * Fix bug of phpinfo()

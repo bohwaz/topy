@@ -58,7 +58,7 @@ void ClientResult::send() {
 	client->write(answer);
 }
 
-ClientResult::ClientResult(Client *_client) : client(_client), tid(-1), type(TEXT), error_code(0), replicated(false), quiet(false) {
+ClientResult::ClientResult(Client *_client) : client(_client), tid(-1), type(TEXT), error_code(0), replicated(false), quiet(false), unthreaded(false) {
 	data.precision(16);
 }
 

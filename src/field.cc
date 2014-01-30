@@ -509,7 +509,7 @@ bool FieldEvents::parse_query(ClientResult &result, std::string const cmd_prefix
 			result.type = PHP_SERIALIZE;
 			result.data << "i:" << total << ";";
 			result.send();
-			return true;			
+			return true;
 		}
 
 		//events!total set <value>
@@ -520,7 +520,12 @@ bool FieldEvents::parse_query(ClientResult &result, std::string const cmd_prefix
 			if (parser->next() == "") {
 				RETURN_PARSE_ERROR(result, "expected <value>");
 			}
+#ifdef EVENTS_SIGNED
+			int value = StringUtils::to_int(parser->current);
+#else
 			unsigned int value = StringUtils::to_uint(parser->current);
+#endif
+			
 			PARSING_END(parser, result);
 			
 			total = value;
@@ -558,10 +563,17 @@ bool FieldEvents::parse_query(ClientResult &result, std::string const cmd_prefix
  */
 void FieldEvents::add(int const n) {
 	update();
+#ifdef EVENTS_SIGNED
+	total = (int) (total + n);
+	INC_OR_EXPAND(hours, EVENTS_HOURS_LEN, n, int16_t, int32_t, false);
+	INC_OR_EXPAND(days, EVENTS_DAYS_LEN, n, int16_t, int32_t, false);
+	INC_OR_EXPAND(months, EVENTS_MONTHS_LEN, n, int16_t, int32_t, false);
+#else
 	total = MAX(0, (int) (total + n));
 	INC_OR_EXPAND(hours, EVENTS_HOURS_LEN, n, uint16_t, uint32_t, true);
 	INC_OR_EXPAND(days, EVENTS_DAYS_LEN, n, uint16_t, uint32_t, true);
 	INC_OR_EXPAND(months, EVENTS_MONTHS_LEN, n, uint16_t, uint32_t, true);
+#endif
 	last_inc = timer.now;
 }
 
@@ -579,6 +591,7 @@ void FieldEvents::get_score_rules(ScoreRulesList &result) {
 	result.insert(std::pair<std::string, int> ("days::last", FIELD_EVENTS_DAYS_LAST));
 	result.insert(std::pair<std::string, int> ("days::penultimate", FIELD_EVENTS_DAYS_PENULTIMATE));
 	result.insert(std::pair<std::string, int> ("days::last2", FIELD_EVENTS_DAYS_LAST2));
+	result.insert(std::pair<std::string, int> ("days::last3", FIELD_EVENTS_DAYS_LAST3));
 	result.insert(std::pair<std::string, int> ("days::last7", FIELD_EVENTS_DAYS_LAST7));
 	result.insert(std::pair<std::string, int> ("days::last15", FIELD_EVENTS_DAYS_LAST15));
 
@@ -621,6 +634,8 @@ UserScore FieldEvents::score(int const rule) {
 			return days->get_sample(1);
 		case FIELD_EVENTS_DAYS_LAST2:
 			return days->sum(2);
+		case FIELD_EVENTS_DAYS_LAST3:
+			return days->sum(3);
 		case FIELD_EVENTS_DAYS_LAST7:
 			return days->sum(7);
 		case FIELD_EVENTS_DAYS_LAST15:
@@ -761,15 +776,27 @@ void FieldEvents::restore(Parser &parser) {
 	total = parser.read_int();
 	parser.waitfor(':');
 	parser.waitfor('h');
+#ifdef EVENTS_SIGNED
+	RESTORE_VECTOR(parser, hours, EVENTS_HOURS_LEN, int8_t, int16_t, int32_t, false);
+#else
 	RESTORE_VECTOR(parser, hours, EVENTS_HOURS_LEN, uint8_t, uint16_t, uint32_t, true);
+#endif
 //	hours = new StatsVector<uint8_t, EVENTS_HOURS_LEN, true>;
 
 	parser.waitfor(':');
 	parser.waitfor('d');
+#ifdef EVENTS_SIGNED
+	RESTORE_VECTOR(parser, days, EVENTS_DAYS_LEN, int8_t, int16_t, int32_t, false);
+#else
 	RESTORE_VECTOR(parser, days, EVENTS_DAYS_LEN, uint8_t, uint16_t, uint32_t, true);
+#endif
 	parser.waitfor(':');
 	parser.waitfor('m');
+#ifdef EVENTS_SIGNED
+	RESTORE_VECTOR(parser, months, EVENTS_MONTHS_LEN, int8_t, int16_t, int32_t, false);
+#else
 	RESTORE_VECTOR(parser, months, EVENTS_MONTHS_LEN, uint8_t, uint16_t, uint32_t, true);
+#endif
 	parser.waitfor('}');
 }
 
@@ -779,9 +806,15 @@ void FieldEvents::restore_bin(FILE *f) {
 	RESTORE_BIN(date.month, f);
 	RESTORE_BIN(last_inc, f);
 	RESTORE_BIN(total, f);
+#ifdef EVENTS_SIGNED
+	RESTORE_BIN_VECTOR(f, hours, EVENTS_HOURS_LEN, int8_t, int16_t, int32_t, false);
+	RESTORE_BIN_VECTOR(f, days, EVENTS_DAYS_LEN, int8_t, int16_t, int32_t, false);
+	RESTORE_BIN_VECTOR(f, months, EVENTS_MONTHS_LEN, int8_t, int16_t, int32_t, false);
+#else
 	RESTORE_BIN_VECTOR(f, hours, EVENTS_HOURS_LEN, uint8_t, uint16_t, uint32_t, true);
 	RESTORE_BIN_VECTOR(f, days, EVENTS_DAYS_LEN, uint8_t, uint16_t, uint32_t, true);
 	RESTORE_BIN_VECTOR(f, months, EVENTS_MONTHS_LEN, uint8_t, uint16_t, uint32_t, true);
+#endif
 }
 
 void FieldEvents::show(std::stringstream &out) {
@@ -814,9 +847,15 @@ bool FieldEvents::set(std::string const value) {
 FieldEvents::FieldEvents(bool const alloc) {
 	init();
 	if (alloc) {
+#ifdef EVENTS_SIGNED
+		hours = new StatsVector<int8_t, EVENTS_HOURS_LEN, false>;
+		days = new StatsVector<int8_t, EVENTS_DAYS_LEN, false>;
+		months = new StatsVector<int16_t, EVENTS_MONTHS_LEN, false>;
+#else
 		hours = new StatsVector<uint8_t, EVENTS_HOURS_LEN, true>;
 		days = new StatsVector<uint8_t, EVENTS_DAYS_LEN, true>;
 		months = new StatsVector<uint16_t, EVENTS_MONTHS_LEN, true>;
+#endif
 	}
 	else {
 		hours = NULL;
@@ -1555,9 +1594,15 @@ ReportFieldEvents::ReportFieldEvents() {
 	count = 0;
 
 	total = 0;
+#ifdef EVENTS_SIGNED
+	months = new StatsVector<int64_t, EVENTS_MONTHS_LEN, false>; 
+	days = new StatsVector<int64_t, EVENTS_DAYS_LEN, false>; 
+	hours = new StatsVector<int64_t, EVENTS_HOURS_LEN, false>; 
+#else
 	months = new StatsVector<uint64_t, EVENTS_MONTHS_LEN, true>; 
 	days = new StatsVector<uint64_t, EVENTS_DAYS_LEN, true>; 
 	hours = new StatsVector<uint64_t, EVENTS_HOURS_LEN, true>; 
+#endif
 	active_months = new StatsVector<uint32_t, EVENTS_MONTHS_LEN, true>; 
 	active_days = new StatsVector<uint32_t, EVENTS_DAYS_LEN, true>; 
 	active_hours = new StatsVector<uint32_t, EVENTS_HOURS_LEN, true>; 

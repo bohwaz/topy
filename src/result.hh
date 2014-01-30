@@ -45,6 +45,7 @@ public:
 	std::stringstream data;
 	bool replicated;
 	bool quiet;
+	bool unthreaded;
 
 public:
 	Client *get_client();
@@ -55,10 +56,14 @@ public:
 	ClientResult(Client *client);
 };
 
-#define RETURN_PARSE_ERROR(result, msg) { \
+#define PARSE_ERROR(result, msg) { \
 	stats.inc("unvalid"); \
 	result.error(msg); \
 	result.send(); \
+}
+
+#define RETURN_PARSE_ERROR(result, msg) { \
+	PARSE_ERROR(result, msg); \
 	return false; \
 }
 

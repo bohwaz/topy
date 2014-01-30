@@ -110,6 +110,7 @@ bool AutoDumpData::is_forced() {
 
 void AutoDumpData::last_dump(bool const result, std::string const message) {
 	set_last_setted(true);
+	set_last_result(result);
 	set_last_at(time(NULL));
 	set_last_message(message);
 }
@@ -157,7 +158,7 @@ bool AutoDumpData::parse_query(ClientResult &result, std::string const cmd_prefi
 	if (parser->current == "set") {
 		stats.inc(cmd_prefix + "set");
 
-		set_target(parser->next(true));
+		set_target(parser->until_space());
 		int delay = StringUtils::to_time(parser->next());
 		set_delay(delay != 0 ? delay : 3600);
 		PARSING_END(parser, result);

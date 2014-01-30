@@ -67,7 +67,7 @@ bool GroupsInterface::parse_query(ClientResult &result, std::string const cmd_pr
 
 		GroupDelThread *thread = new GroupDelThread(result.get_client());
 		thread->name = name;
-		thread->run();
+		thread->run(result.unthreaded);
 
 		//replication
 		if (replicator.opened and !result.replicated) {
@@ -105,7 +105,7 @@ bool GroupsInterface::parse_query(ClientResult &result, std::string const cmd_pr
 		PARSING_END(parser, result);
 
 		GroupsClearThread *thread = new GroupsClearThread(result.get_client());
-		thread->run();
+		thread->run(result.unthreaded);
 
 		//replication
 		if (replicator.opened and !result.replicated) {
@@ -123,7 +123,7 @@ bool GroupsInterface::parse_query(ClientResult &result, std::string const cmd_pr
 
 		PARSING_END(parser, result);
 		GroupsStatsThread *thread = new GroupsStatsThread(result.get_client());
-		thread->run();
+		thread->run(result.unthreaded);
 		return true;
 	}
 

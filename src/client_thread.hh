@@ -28,6 +28,7 @@ class ClientThread : public PThread {
 protected:
 	Client *client;
 public:
+	void run(bool unthreaded = false);
 	ClientThread(Client *client);
 	~ClientThread();
 };

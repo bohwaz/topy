@@ -36,9 +36,9 @@ DumpThread::DumpThread(Client *_client) : ClientThread(_client) {
 
 void TopThread::main() {
 	ClientResult result(client);
-	timer.lock();
+	if (!nolock) timer.lock();
 	from->top(result.data, filter, join, field_id, size, type, rule, inversed);
-	timer.unlock();
+	if (!nolock) timer.unlock();
 	result.type = type;
 	result.send();
 }

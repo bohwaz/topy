@@ -169,14 +169,17 @@ void signal_handler(int sig) {
 			break;
 		case SIGINT: 
 			name = "SIGINT";
+			signal(SIGINT, SIG_DFL);
 			halt = true;
 			break;
 		case SIGKILL: 
 			name = "SIGKILL"; 
+			signal(SIGKILL, SIG_DFL);
 			halt = true;
 			break;
 		case SIGTERM:
 			name = "SIGTERM"; 
+			signal(SIGTERM, SIG_DFL);
 			halt = true;
 			break;
 		default:
@@ -185,7 +188,7 @@ void signal_handler(int sig) {
 	log.msg(LOG_NOTICE, "Received signal number: " + StringUtils::to_string(sig) + " (" + name +")", true);
 	if (halt) {
 		autodump.force();
-		exit(0);
+		exit(1);
 	}
 }
 

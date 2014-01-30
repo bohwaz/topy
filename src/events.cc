@@ -76,28 +76,49 @@ void Client::clear() {
 	} while (readen == sizeof(buf));
 }
 
-void Client::read(std::stringstream &stream) {
+bool Client::read_inputbuf() {
 	char buf[1024];
+	char last = '\0';
 	size_t readen;
 	do {
 		readen = read(&buf, sizeof(buf));
 		if (readen > 0) {
-			stream.write(buf, readen);
+			if (inputbuf.in_avail() + readen > INPUTBUF_LIMIT) {
+				inputbuf.str("");
+				overflow = true;
+			}
+
+			if (!overflow)
+				inputbuf.sputn(buf, readen);
+			last = buf[readen - 1];
 		}
 	} while (readen == sizeof(buf));
+	return (last == '\n');
+}
+
+bool Client::read(std::string &str, bool &of) {
+	if (!read_inputbuf())
+		return false;
+
+	of = overflow;
+	str = inputbuf.str();
+
+	inputbuf.str("");
+	overflow = false;
+	return true;
 }
 
 void Client::receive() {
 	try {
-		std::stringstream stream;
-		read(stream);
-
-		std::string str = stream.str();
-		if (str.substr(0, 4) == "quit")
-			exit();
-		else {		
-			char answer[6] = "OK\n\r\n";
-			write(&answer, sizeof(answer) - 1);
+		std::string query;
+		bool overflow;
+		if (read(query, overflow)) {
+			if (query.substr(0, 4) == "quit")
+				exit();
+			else {		
+				char answer[6] = "OK\n\r\n";
+				write(&answer, sizeof(answer) - 1);
+			}
 		}
 	}
 	catch (...) {
@@ -183,6 +204,7 @@ Client::Client(int const _fd) {
 	opened = true;
 	ref_count = 0;
 	fd = _fd;
+	overflow = false;
 	open();
 }
 

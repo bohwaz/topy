@@ -135,17 +135,24 @@ public:
 #define FIELD_EVENTS_DAYS_LAST 8
 #define FIELD_EVENTS_DAYS_PENULTIMATE 9
 #define FIELD_EVENTS_DAYS_LAST2 10
-#define FIELD_EVENTS_DAYS_LAST7 11
-#define FIELD_EVENTS_DAYS_LAST15 12
+#define FIELD_EVENTS_DAYS_LAST3 11
+#define FIELD_EVENTS_DAYS_LAST7 12
+#define FIELD_EVENTS_DAYS_LAST15 13
 
-#define FIELD_EVENTS_MONTHS_SUM 13
-#define FIELD_EVENTS_MONTHS_LAST 14
-#define FIELD_EVENTS_MONTHS_PENULTIMATE 15
-#define FIELD_EVENTS_MONTHS_LAST2 16
-#define FIELD_EVENTS_MONTHS_LAST3 17
-#define FIELD_EVENTS_MONTHS_LAST6 18
+#define FIELD_EVENTS_MONTHS_SUM 14
+#define FIELD_EVENTS_MONTHS_LAST 15
+#define FIELD_EVENTS_MONTHS_PENULTIMATE 16
+#define FIELD_EVENTS_MONTHS_LAST2 17
+#define FIELD_EVENTS_MONTHS_LAST3 18
+#define FIELD_EVENTS_MONTHS_LAST6 19
 
-#define FIELD_EVENTS_TOTAL 19
+#define FIELD_EVENTS_TOTAL 20
+
+#ifdef EVENTS_SIGNED
+#define FIELD_EVENTS_SIGNED_INFO "signed"
+#else
+#define FIELD_EVENTS_SIGNED_INFO "unsigned"
+#endif
 
 #define FIELD_EVENTS_TYPE_NAME "events"
 class FieldEvents : public Field {
@@ -166,7 +173,11 @@ public:
 	StatsVectorBase *hours;
 	StatsVectorBase *days;
 	StatsVectorBase *months;
+#ifdef EVENTS_SIGNED
+	int total;
+#else
 	unsigned int total;
+#endif
 
 	void debug();
 	void translate(unsigned int const delta_hours, unsigned int const delta_days, unsigned int const delta_months);
@@ -392,8 +403,11 @@ private:
 	StatsVectorBase *active_hours;
 	StatsVectorBase *active_days;
 	StatsVectorBase *active_months;
-
+#ifdef EVENTS_SIGNED
+	int total;
+#else
 	unsigned int total;
+#endif
 
 public:
 	bool add(Field const *field);
