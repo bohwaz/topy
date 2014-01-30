@@ -32,7 +32,7 @@
 
 #include "php_topy.h"
 
-static function_entry topy_functions[] = {
+const zend_function_entry topy_functions[] = {
 	PHP_FE(topy_connect, NULL)
 	PHP_FE(topy_pconnect, NULL)
 	PHP_FE(topy_reconnect, NULL)
@@ -404,8 +404,9 @@ PHP_MINIT_FUNCTION(topy) {
 }
 
 PHP_FUNCTION(topy_connect) {
-	char *host, *port = NULL;
-	int host_len = 0, port_len = 0, timeout = TOPY_TIMEOUT;
+	char *host, *port;
+	int host_len, port_len;
+	long timeout = TOPY_TIMEOUT;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &host, &host_len, &port, &port_len, &timeout) == FAILURE) {
 		RETURN_FALSE;
 	}
@@ -420,8 +421,9 @@ PHP_FUNCTION(topy_connect) {
 }
 
 PHP_FUNCTION(topy_pconnect) {
-	char *host, *port = NULL;
-	int host_len = 0, port_len = 0, timeout = TOPY_TIMEOUT;
+	char *host, *port;
+	int host_len, port_len;
+    long timeout = TOPY_TIMEOUT;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &host, &host_len, &port, &port_len, &timeout) == FAILURE) {
 		RETURN_FALSE;
 	}
@@ -431,7 +433,7 @@ PHP_FUNCTION(topy_pconnect) {
 	key_len = spprintf(&key, 0, "topy:%s:%s", host, port) + 1;
 
 	//retrieve and check connection resource
-	list_entry *le;
+	zend_rsrc_list_entry *le;
 	if (zend_hash_find(&EG(persistent_list), key, key_len, (void **) &le) == SUCCESS) {
 		//php_printf("RETRIEVE\n");
 		topy_connection_t *connection = le->ptr;
@@ -453,12 +455,12 @@ PHP_FUNCTION(topy_pconnect) {
 	topy_connection_t *connection = connection_new(1, key_len, key, socket, host, port, timeout);
 	ZEND_REGISTER_RESOURCE(return_value, connection, le_topy_connection_persist);
 
-	list_entry new_le;
+	zend_rsrc_list_entry new_le;
 	new_le.ptr = connection;
 	new_le.type = le_topy_connection_persist;
 
 //	php_printf("ADD\n");
-	zend_hash_add(&EG(persistent_list), key, key_len, &new_le, sizeof(list_entry), NULL);
+	zend_hash_add(&EG(persistent_list), key, key_len, &new_le, sizeof(zend_rsrc_list_entry), NULL);
 	efree(key);
 }
 
@@ -548,7 +550,7 @@ PHP_FUNCTION(topy_close) {
 PHP_FUNCTION(topy_query) {
 	zval *_zval;
 	char *str;
-	int str_len = 0;
+	int str_len;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &_zval, &str, &str_len) == FAILURE) {
 		RETURN_FALSE;
@@ -575,7 +577,7 @@ PHP_FUNCTION(topy_query) {
 PHP_FUNCTION(topy_query_send) {
 	zval *_zval;
 	char *str;
-	int str_len = 0;
+	int str_len;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &_zval, &str, &str_len) == FAILURE) {
 		RETURN_FALSE;
@@ -614,7 +616,7 @@ PHP_FUNCTION(topy_query_read) {
 #define SOCKETS_MAX_NB 256
 PHP_FUNCTION(topy_query_wait) {
 	zval *arr;
-	int timeout = TOPY_TIMEOUT * 1000;
+	long timeout = TOPY_TIMEOUT * 1000;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a|l", &arr, &timeout) == FAILURE) {
 		RETURN_FALSE;

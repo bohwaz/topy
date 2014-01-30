@@ -1,7 +1,8 @@
 #! /bin/sh -e
 
 if test "$1" = "configure"; then
-	ucf /usr/share/php5-topy/topy.ini-dist /etc/php5/conf.d/topy.ini
+	ucf /usr/share/php5-topy/topy.ini-dist /etc/php5/apache2/conf.d/topy.ini
+	ucf /usr/share/php5-topy/topy.ini-dist /etc/php5/cli/conf.d/topy.ini
 fi
 
 #DEBHELPER#

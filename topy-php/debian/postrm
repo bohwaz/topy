@@ -1,8 +1,10 @@
 #! /bin/sh -e
 
 if test "$1" = "purge"; then
-	ucf --purge /etc/php5/conf.d/topy.ini
-	rm -f /etc/php5/conf.d/topy.ini
+	ucf --purge /etc/php5/apache2/conf.d/topy.ini
+	rm -f /etc/php5/apache2/conf.d/topy.ini
+	ucf --purge /etc/php5/cli/conf.d/topy.ini
+	rm -f /etc/php5/cli/conf.d/topy.ini
 fi
 
 #DEBHELPER#
