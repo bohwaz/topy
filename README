@@ -1,0 +1,17 @@
+Un serveur Tcp/Udp pour la mesure d’audience et le ranking d’une grande quantité de ressources
+
+Topy est un serveur qui répond en TCP ou en UDP, et dont la tâche consiste à générer des statistiques et des classements en temps réel.
+
+Pour ce faire, il manipule des paires clé-valeur, la clé étant, par exemple, une clé d'utilisateur ou tout type de valeur sur laquelle des classements doivent être effectués, et la valeur est une structure qui contient des agrégats sur lesquels des opérations simples peuvent être réalisées, comme un 
+"add".
+
+Sur skyrock.com, Topy est utilisé pour tous types de classements (visites, votes, tags, «kif», thèmes, etc.) et également pour des stats internes.
+
+Exemple avec extension PHP :
+
+<?php
+$handle = topy_connect("localhost", "8888");
+if (!$handle) die("Could not connect to Fluxy Server!\n");
+$result = topy_query("stats");
+var_dump($result);
+?>
